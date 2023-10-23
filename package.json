@@ -1,0 +1,10 @@
+{
+  "name": "rtsp-media",
+  "description": "RTSP Server for NodeJS support tcp/udp",
+  "version": "1.0.0",
+  "author": "Pr!de",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+  }
+}
