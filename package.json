@@ -1,6 +1,14 @@
 {
-  "name": "rtsp-media",
+  "name": "media-rtsp",
   "description": "RTSP Server for NodeJS support tcp/udp",
+  "keywords": [
+    "rtsp",
+    "server",
+    "streaming",
+    "media",
+    "tcp",
+    "udp"
+  ],
   "version": "1.0.0",
   "author": "Vadim Pride <pride.mk.ua@gmail.com>",
   "main": "index.js",

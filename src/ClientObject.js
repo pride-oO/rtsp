@@ -228,29 +228,20 @@ module.exports = class ClientObject extends require('node:events')
                 ], 500, e.message).catch(()=> { });
             });
         });
-
         $this.on('RTSP:ECHO', (body) => {
             return $this.write(body, true);
         });
-
+        // Encoder TCP
         const encoderTCP = new EncoderTCP();
-
         encoderTCP.on('data', (buffer) => {
             if($this.__mediaObject){
                 $this.__mediaObject.emit('buffer|tcp', buffer);
             }
         });
-
-        let oldBuffer = false;
         $this.on('RTSP:Buffer', (buffer) => {
             if(!$this.__mediaObject) return;
             encoderTCP.append(buffer);
-            if(buffer[0] === 0x24){
-                $this.__mediaObject.emit('buffer|tcp', buffer);
-            }
         });
-
-
     }
 
     getID(){
@@ -471,7 +462,8 @@ module.exports = class ClientObject extends require('node:events')
             if(socket){
                 socket.destroy(this.getDestroy());
             }
-        }catch (e){}
+        }catch (e){
+        }
         // Clear all events
         let listEvent = this.eventNames();
         for (let i in listEvent) {

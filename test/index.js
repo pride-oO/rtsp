@@ -1,20 +1,7 @@
-# RTSP Server:
-rtsp tcp/udp media server
-
-## Support protocol:
-* TCP
-* UDP
-
-## Testing:
-* tcp->tcp
-* udp->udp
-* tcp->udp
-* udp->tcp
-
-## Usage:
-```javascript
+const RTSP_SERVER = require('../index');
 
 (async () => {
+
     /**
      * Test debug function
      * @param argument
@@ -23,7 +10,7 @@ rtsp tcp/udp media server
     const _debug = (...argument) => {
         console.info.apply(this, ['['+Date.now()+']', ...argument]);
     }
-    
+
     /**
      * Config server
      * @type {object}
@@ -39,32 +26,44 @@ rtsp tcp/udp media server
         "access" : ["auth", "media"],
         // * Port udp range (Default: 56000-57000)
         "portList" : {
-            "start" : 56000, 
+            "start" : 56000,
             "end" : 57000
         }
     };
-    
-    const RTSP_SERVER = require('media-rtsp');
-    
+
     // Create server
     const rtspServer = new RTSP_SERVER(CONFIG);
+
+    /**
+     * Event error
+     * @event listen
+     */
+    rtspServer.on('error', (name, data) => {
+        _debug(
+            'event:[error]',
+            name,
+            data
+        );
+    });
+
+
+    /**
+     * Event listen server
+     * @event listen
+     */
+    rtspServer.on('listen', () => {
+        _debug(
+            'event:[listen]',
+            'Host: '+rtspServer.getHost(),
+            'Port: '+rtspServer.getPort()
+        );
+    });
 
     /**
      * Event connection new client
      * @event connect
      */
     rtspServer.on('connect', (clientObject) => {
-
-        clientObject.on('RTSP:command', (command, data) => {
-            console.debug('RTSP:command', command, clientObject.getID(), data);
-        });
-
-        clientObject.on('write', (message, isCommand) => {
-            if(isCommand){
-                console.debug('write', clientObject.getID(), message);
-            }
-
-        });
 
         /**
          * Event auth client
@@ -126,18 +125,6 @@ rtsp tcp/udp media server
     });
 
 
-    /**
-     * Event listen server
-     * @event listen
-     */
-    rtspServer.on('listen', () => {
-        _debug(
-            'event:[listen]',
-            'Host: '+rtspServer.getHost(),
-            'Port: '+rtspServer.getPort()
-        );
-    });
-
 
     /**
      * Client authorization request
@@ -173,25 +160,17 @@ rtsp tcp/udp media server
     await rtspServer.listen();
 
 })();
-```
 
-
+/*
 ## Publish
-```shell
 ffmpeg -re -i test.mp4  -c copy -f rtsp -rtsp_transport udp rtsp://127.0.0.1:5544/test
-```
 or
-```shell
-
 ffmpeg -re -i test.mp4  -c copy -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:5544/test
 ```
 
-
 ## Views
-```shell
 ffplay -rtsp_transport udp rtsp://127.0.0.1:5544/test
-```
 or
-```shell
 ffplay -rtsp_transport tcp rtsp://127.0.0.1:5544/test
-```
+
+*/

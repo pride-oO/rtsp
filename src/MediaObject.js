@@ -27,8 +27,17 @@ const MediaObject = class MediaObject extends require('node:events'){
         this.__targetMediaObject = false;
         this.__rtspSetup = [];
         this.__transportList = {};
-
-
+        const $this = this;
+        if(this.isTypePublish()) {
+            this.on('buffer|tcp', (buffer) => {
+                if($this.getMediaType() === 'TCP'){
+                    const mediaType = ($this.getSDPInfoVal('interleavedType', {}) || {})[buffer[1]] || undefined;
+                    if(typeof mediaType !== 'undefined'){
+                        $this.emit('buffer|udp|' + mediaType, buffer.slice(4));
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -191,7 +200,7 @@ const MediaObject = class MediaObject extends require('node:events'){
         if(!this.isTypePublish()){
             // TCP View
             if(mediaType === 'TCP'){
-                return transport;
+                return 'RTP/AVP/TCP;unicast;mode=record;interleaved='+(typeData['interleaved'] || '0-1');
             }
             // UDP View
             return await (async () => {
@@ -206,6 +215,9 @@ const MediaObject = class MediaObject extends require('node:events'){
         if(!clientObject || clientObject.getDestroy()){
             throw new Error('InvalidClient');
         }
+        if(typeof $this.__sdpInfo['interleavedType'] !== 'object'){
+            $this.__sdpInfo['interleavedType'] = {};
+        }
         // TCP Publish
         if(mediaType === 'TCP'){
             return await (async () => {
@@ -214,6 +226,7 @@ const MediaObject = class MediaObject extends require('node:events'){
                     throw new Error('InterleavedError');
                 }
                 typeData['interleaved'] = interleaved;
+                $this.__sdpInfo['interleavedType'][parseInt(interleaved)] = typeData['type'];
                 const transportObject = await $this.createTransport(typeData['type']);
                 typeData['port'] = transportObject.getPort();
                 return transport;
@@ -222,7 +235,10 @@ const MediaObject = class MediaObject extends require('node:events'){
         // UDP Publish
         return await (async () => {
             const client_port = (transport.match(/client_port=(\d+-\d+)/) || [])[1] || '';
+
             typeData['interleaved'] =  countIndex === 0 ? '0-1' : '2-3';
+
+            $this.__sdpInfo['interleavedType'][parseInt(typeData['interleaved'])] = typeData['type'];
             const transportObject = await $this.createTransport(typeData['type']);
             typeData['port'] = transportObject.getPort();
             return 'RTP/AVP/UDP;unicast;mode=record;client_port='+client_port+';server_port='+transportObject.getPort()+'-'+transportObject.getPort()+1;
@@ -353,15 +369,16 @@ const MediaObject = class MediaObject extends require('node:events'){
         if(!targetMediaObject || targetMediaObject.getDestroy()){
             throw new Error('InvalidTargetMedia');
         }
+
+        const parseBuffer = (buffer) => {
+            if($this.getDestroy()){
+                return false;
+            }
+            clientObject.write(buffer, false);
+        };
         // TCP
         if(this.getMediaType() === 'TCP'){
             return await (async () => {
-                const parseBuffer = (buffer) => {
-                    if($this.getDestroy()){
-                        return false;
-                    }
-                    clientObject.write(buffer, false);
-                };
                 targetMediaObject.on('buffer|tcp', parseBuffer);
                 targetMediaObject.on('destroy', () => $this.destroy('end'));
                 $this.emit('live', $this);
@@ -370,12 +387,11 @@ const MediaObject = class MediaObject extends require('node:events'){
         }
         // UDP
         return await (async () => {
-            console.log('LIVE VIEW UDP')
+            targetMediaObject.on('buffer|udp', parseBuffer);
+            targetMediaObject.on('destroy', () => $this.destroy('end'));
             $this.emit('live', $this);
             return {};
         })();
-
-
     }
 
     getTransport(type){
@@ -407,9 +423,11 @@ const MediaObject = class MediaObject extends require('node:events'){
     destroy(msg){
         if(this.__destroy) return false;
         this.__destroy = String(msg || 'destroy');
+        const clientObject = this.getClientObject();
         try{
-            if(this.getClientObject()){
-                this.getClientObject().destroy(this.getDestroy());
+            if(clientObject){
+                clientObject.write("TEARDOWN rtsp://"+this.getServerObject().getHost()+":"+this.getServerObject().getPort()+"/"+$this.getName()+" RTSP/1.0\r\nCSeq: 1000\r\nSession: "+$this.getID()+"\r\n\r\n", true);
+                clientObject.destroy(this.getDestroy());
             }
         }catch (e){ }
 

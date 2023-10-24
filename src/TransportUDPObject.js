@@ -18,7 +18,6 @@ module.exports = class UDP_Transport extends require('node:events'){
 
         if(mediaObject.isTypeView()){
             this.view().catch((e) => {
-                console.error(e);
                 $this.destroy(e.message);
             });
         }else{
@@ -71,9 +70,7 @@ module.exports = class UDP_Transport extends require('node:events'){
         // TCP
         if(mediaObject.getMediaType() === 'TCP'){
             return await (async () => {
-                mediaObject.on('buffer|tcp', (buffer) => {
-                    //mediaObject.emit('buffer|udp', buffer.slice(4));
-                });
+                // TCP init media object
             })();
         }
 
@@ -81,7 +78,8 @@ module.exports = class UDP_Transport extends require('node:events'){
         return await (async () => {
             $this.__port = $this.getServerObject().lockPort();
             $this.__socket.on('error', (err) => {
-                console.log('error', err, $this.getPort());
+                $this.getServerObject().emit('error', 'transport', err.message);
+                $this.destroy(err.message);
             });
 
             const interleaved = parseInt($this.getTypeData()['interleaved'] || 0) || 0;
@@ -94,10 +92,8 @@ module.exports = class UDP_Transport extends require('node:events'){
                     return false;
                 }
                 tcp_prefix.writeInt8(interleaved, 1);
-
                 tcp_prefix.writeInt16BE(buffer.length, 2);
                 mediaObject.emit('buffer|tcp', Buffer.concat([tcp_prefix, buffer]));
-
                 mediaObject.emit('buffer|udp|'+$this.getType(), buffer);
             });
             $this.__socket.bind($this.getPort());
