@@ -426,7 +426,7 @@ const MediaObject = class MediaObject extends require('node:events'){
         const clientObject = this.getClientObject();
         try{
             if(clientObject){
-                clientObject.write("TEARDOWN rtsp://"+this.getServerObject().getHost()+":"+this.getServerObject().getPort()+"/"+$this.getName()+" RTSP/1.0\r\nCSeq: 1000\r\nSession: "+$this.getID()+"\r\n\r\n", true);
+                clientObject.write("TEARDOWN rtsp://"+this.getServerObject().getHost()+":"+this.getServerObject().getPort()+"/"+$this.getName()+" RTSP/1.0\r\nCSeq: 1000\r\nSession: "+clientObject.getID()+"\r\n\r\n", true);
                 clientObject.destroy(this.getDestroy());
             }
         }catch (e){ }

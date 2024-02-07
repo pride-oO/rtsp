@@ -350,6 +350,7 @@ module.exports = class ClientObject extends require('node:events')
         let dateArray = [];
         dateArray.push('RTSP/1.0 ' + (code || 200) + ' ' + (desc || 'OK'));
         dateArray.push('User-Agent: ' + this.getServerObject().getServerName());
+        dateArray.push('Session: '+this.getID());
         dateArray = dateArray.concat(data);
         return this.write(dateArray.join('\r\n') + '\r\n\r\n', true);
     }
